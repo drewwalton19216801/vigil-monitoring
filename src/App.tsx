@@ -14,7 +14,7 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-gray-900">
       <header className="sticky top-0 z-10 bg-gray-800/80 backdrop-blur-sm h-16 flex justify-between items-center border-b border-gray-700 shadow-sm px-4">
         <div className="flex items-center gap-6">
-          <h2 className="text-xl font-semibold text-blue-400">Website Monitor</h2>
+          <h2 className="text-xl font-semibold text-blue-400">Vigil Web Monitor</h2>
           <Authenticated>
             <nav className="flex gap-4">
               <button

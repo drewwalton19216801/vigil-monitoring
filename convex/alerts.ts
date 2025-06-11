@@ -214,6 +214,25 @@ export const upsertAlertConfig = mutation({
   },
 });
 
+// Delete alert configuration
+export const deleteAlertConfig = mutation({
+  args: {
+    configId: v.id("alertConfigs"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    // Get the config to verify ownership
+    const config = await ctx.db.get(args.configId);
+    if (!config) throw new Error("Alert configuration not found");
+    if (config.userId !== userId) throw new Error("Not authorized to delete this configuration");
+
+    // Delete the config
+    await ctx.db.delete(args.configId);
+  },
+});
+
 // Get alert history
 export const getAlertHistory = query({
   args: {

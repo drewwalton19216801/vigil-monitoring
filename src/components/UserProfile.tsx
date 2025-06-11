@@ -3,11 +3,13 @@ import { api } from "../../convex/_generated/api";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { AlertConfigForm } from "./AlertConfigForm";
+import { Id } from "../../convex/_generated/dataModel";
 
 export function UserProfile() {
   const userProfile = useQuery(api.users.getCurrentUserProfile);
   const upsertProfile = useMutation(api.users.upsertUserProfile);
   const alertConfigs = useQuery(api.alerts.getUserAlertConfigs);
+  const deleteAlertConfig = useMutation(api.alerts.deleteAlertConfig);
   const [isEditing, setIsEditing] = useState(false);
   const [isAddingAlert, setIsAddingAlert] = useState(false);
   const [editingAlertConfig, setEditingAlertConfig] = useState<any>(null);
@@ -69,6 +71,19 @@ export function UserProfile() {
   const handleAlertSuccess = () => {
     setIsAddingAlert(false);
     setEditingAlertConfig(null);
+  };
+
+  const handleDeleteAlert = async (configId: Id<"alertConfigs">) => {
+    if (!confirm("Are you sure you want to delete this alert configuration?")) {
+      return;
+    }
+
+    try {
+      await deleteAlertConfig({ configId });
+      toast.success("Alert configuration deleted successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete alert configuration");
+    }
   };
 
   return (
@@ -298,25 +313,25 @@ export function UserProfile() {
                         ))}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                        config.isActive ? "bg-green-900 text-green-200" : "bg-gray-700 text-gray-300"
-                      }`}>
-                        {config.isActive ? "ACTIVE" : "INACTIVE"}
-                      </span>
+                    <div className="flex gap-2">
                       <button
-                        onClick={() => handleEditAlert(config)}
-                        className="text-gray-400 hover:text-white"
+                        onClick={() => setEditingAlertConfig(config)}
+                        className="px-3 py-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteAlert(config._id)}
+                        className="px-3 py-1 text-sm text-red-400 hover:text-red-300 transition-colors"
+                      >
+                        Delete
                       </button>
                     </div>
                   </div>
-                  <div className="mt-3 text-sm text-gray-400">
-                    <p>Response time threshold: {config.responseTimeThreshold}ms</p>
-                    <p>SSL expiry threshold: {config.sslExpiryThreshold} days</p>
+                  <div className="mt-4 text-sm text-gray-400">
+                    <p>Response Time Threshold: {config.responseTimeThreshold}ms</p>
+                    <p>SSL Expiry Threshold: {config.sslExpiryThreshold} days</p>
+                    <p>Status: {config.isActive ? "Active" : "Inactive"}</p>
                   </div>
                 </div>
               ))}

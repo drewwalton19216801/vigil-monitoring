@@ -227,7 +227,45 @@ export const deleteWebsite = mutation({
     const website = await ctx.db.get(args.websiteId);
     if (!website) throw new Error("Website not found");
 
+    // Get all alert configurations for this website
+    const alertConfigs = await ctx.db
+      .query("alertConfigs")
+      .withIndex("by_website", (q) => q.eq("websiteId", args.websiteId))
+      .collect();
+
+    // Get user profiles for notification
+    const userProfiles = await Promise.all(
+      alertConfigs.map(async (config) => {
+        return await ctx.db
+          .query("userProfiles")
+          .withIndex("by_user", (q) => q.eq("userId", config.userId))
+          .first();
+      })
+    );
+
+    // Delete all alert configurations
+    for (const config of alertConfigs) {
+      await ctx.db.delete(config._id);
+    }
+
+    // Delete the website
     await ctx.db.delete(args.websiteId);
+
+    // Log alerts for notification
+    for (const config of alertConfigs) {
+      const userProfile = userProfiles.find(p => p?.userId === config.userId);
+      if (userProfile) {
+        await ctx.db.insert("alerts", {
+          websiteId: args.websiteId,
+          userId: config.userId,
+          type: "downtime",
+          message: `Website ${website.name} (${website.url}) has been deleted. All alert configurations have been removed.`,
+          sentAt: Date.now(),
+          status: "sent"
+        });
+      }
+    }
+
     return true;
   },
 });

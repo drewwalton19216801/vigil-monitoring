@@ -39,12 +39,37 @@ export const runMonitoringChecks = internalAction({
 export const queryActiveWebsites = internalQuery({
   args: {},
   handler: async (ctx) => {
+    const now = Date.now();
+    
+    // Get all active websites
     const websites = await ctx.db
       .query("websites")
       .withIndex("by_active", (q) => q.eq("isActive", true))
       .collect();
     
-    return websites;
+    // Filter websites that are due for a check
+    const websitesDueForCheck = await Promise.all(
+      websites.map(async (website) => {
+        // Get the last check for this website
+        const lastCheck = await ctx.db
+          .query("monitoringChecks")
+          .withIndex("by_website_and_time", (q) => q.eq("websiteId", website._id))
+          .order("desc")
+          .first();
+
+        // If no previous check, website is due for check
+        if (!lastCheck) return website;
+
+        // Calculate time since last check in minutes
+        const minutesSinceLastCheck = (now - lastCheck.checkedAt) / (60 * 1000);
+
+        // Return website if it's due for a check
+        return minutesSinceLastCheck >= website.checkInterval ? website : null;
+      })
+    );
+
+    // Filter out null values (websites not due for check)
+    return websitesDueForCheck.filter((website): website is NonNullable<typeof website> => website !== null);
   },
 });
 
